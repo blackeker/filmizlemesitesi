@@ -13,7 +13,6 @@ let users = [];
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/videos', express.static(path.join(__dirname, 'videos')));
 
-// Video listesi endpoint'i
 app.get('/api/videos', (req, res) => {
   const videosDir = path.join(__dirname, 'videos');
   
