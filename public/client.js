@@ -25,7 +25,6 @@ loginBtn.onclick = () => {
   video.play().catch(()=>{});
 };
 
-// Video olayları (oynatma/durdurma/atlama)
 let isSeeking = false;
 
 video.addEventListener('play', () => {
@@ -44,7 +43,6 @@ video.addEventListener('seeked', () => {
   }
 });
 
-// Gelen olaylar
 socket.on('play', () => {
   if (video.paused) video.play().catch(()=>{});
 });
@@ -61,7 +59,6 @@ video.addEventListener('click', () => {
   if (video.paused) video.play().catch(()=>{});
 });
 
-// Chat sistemi
 const chatMessages = document.getElementById('chatMessages');
 const chatInput = document.getElementById('chatInput');
 const chatSend = document.getElementById('chatSend');
@@ -92,12 +89,10 @@ function addChatMessage(name, msg, isMe) {
   if (!isMe) showToast(`<b style="color: #6c7ce0; font-weight: 600;">${name}:</b> <span style="color: white;">${msg}</span>`);
 }
 
-// Kullanıcı listesi
 socket.on('user-list', (users) => {
   userListDiv.innerHTML = '🌟 Online: ' + users.map(u => `<b style="color: #ff6b9d">${u}</b>`).join(', ');
 });
 
-// Sağ üstte mesaj bildirimi (toast)
 function showToast(html) {
   const toast = document.getElementById('toast');
   toast.innerHTML = html;
@@ -109,7 +104,6 @@ function showToast(html) {
   }, 3500);
 }
 
-// Sesli sohbet sistemi
 let localStream = null;
 let remoteStream = null;
 let peerConnection = null;
@@ -119,7 +113,6 @@ let isSpeakerOn = true;
 const micBtn = document.getElementById('micBtn');
 const speakerBtn = document.getElementById('speakerBtn');
 
-// WebRTC konfigürasyonu
 const rtcConfig = {
   iceServers: [
     { urls: 'stun:stun.l.google.com:19302' },
@@ -127,7 +120,6 @@ const rtcConfig = {
   ]
 };
 
-// Mikrofon butonu
 micBtn.onclick = async () => {
   if (!isMicOn) {
     try {
@@ -137,17 +129,14 @@ micBtn.onclick = async () => {
       micBtn.innerHTML = '<span>🎤</span><span>Açık</span>';
       socket.emit('voice-status', { name: myName, status: 'mic-on' });
       
-      // Peer connection oluştur
       if (!peerConnection) {
         await createPeerConnection();
       }
       
-      // Local stream'i peer connection'a ekle
       localStream.getTracks().forEach(track => {
         peerConnection.addTrack(track, localStream);
       });
-      
-      // Offer oluştur ve gönder
+  
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
       socket.emit('webrtc-offer', offer);
@@ -157,7 +146,6 @@ micBtn.onclick = async () => {
       alert('Mikrofon erişimi reddedildi veya hata oluştu!');
     }
   } else {
-    // Mikrofonu kapat
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
       localStream = null;
@@ -173,8 +161,6 @@ micBtn.onclick = async () => {
     }
   }
 };
-
-// Hoparlör butonu
 speakerBtn.onclick = () => {
   isSpeakerOn = !isSpeakerOn;
   if (isSpeakerOn) {
@@ -185,7 +171,6 @@ speakerBtn.onclick = () => {
     speakerBtn.innerHTML = '<span>🔊</span><span>Kapalı</span>';
   }
   
-  // Remote audio'yu sessize al/aç
   if (remoteStream) {
     remoteStream.getAudioTracks().forEach(track => {
       track.enabled = isSpeakerOn;
@@ -193,22 +178,17 @@ speakerBtn.onclick = () => {
   }
 };
 
-// Peer connection oluştur
 async function createPeerConnection() {
   peerConnection = new RTCPeerConnection(rtcConfig);
   
-  // ICE candidate olayı
   peerConnection.onicecandidate = (event) => {
     if (event.candidate) {
       socket.emit('webrtc-ice-candidate', event.candidate);
     }
   };
   
-  // Remote stream olayı
   peerConnection.ontrack = (event) => {
     remoteStream = event.streams[0];
-    
-    // Remote audio'yu çal
     const remoteAudio = document.createElement('audio');
     remoteAudio.srcObject = remoteStream;
     remoteAudio.autoplay = true;
@@ -217,7 +197,6 @@ async function createPeerConnection() {
   };
 }
 
-// WebRTC signaling olayları
 socket.on('webrtc-offer', async (offer) => {
   if (!peerConnection) {
     await createPeerConnection();
@@ -225,14 +204,12 @@ socket.on('webrtc-offer', async (offer) => {
   
   await peerConnection.setRemoteDescription(offer);
   
-  // Mikrofon açıksa local stream'i ekle
   if (localStream) {
     localStream.getTracks().forEach(track => {
       peerConnection.addTrack(track, localStream);
     });
   }
   
-  // Answer oluştur ve gönder
   const answer = await peerConnection.createAnswer();
   await peerConnection.setLocalDescription(answer);
   socket.emit('webrtc-answer', answer);
@@ -250,7 +227,6 @@ socket.on('webrtc-ice-candidate', async (candidate) => {
   }
 });
 
-// Ses durumu bildirimleri
 socket.on('voice-status', ({ name, status }) => {
   let message = '';
   if (status === 'mic-on') {
@@ -264,13 +240,10 @@ socket.on('voice-status', ({ name, status }) => {
   }
 });
 
-// Video yönetimi ve ilerleme kaydetme sistemi
 const videoListDiv = document.getElementById('videoList');
 const refreshBtn = document.getElementById('refreshVideos');
 const currentVideoNameSpan = document.getElementById('currentVideoName');
 const videoInfoDiv = document.getElementById('videoInfo');
-
-// Video listesini yükle
 async function loadVideos() {
   try {
     videoListDiv.innerHTML = '<div class="loading">Videolar yükleniyor...</div>';
@@ -310,26 +283,19 @@ async function loadVideos() {
   }
 }
 
-// Video seç
 function selectVideo(videoData) {
-  // Önceki seçimi kaldır
   document.querySelectorAll('.video-item').forEach(item => {
     item.classList.remove('selected');
   });
   
-  // Yeni seçimi işaretle
   event.target.closest('.video-item').classList.add('selected');
-  
-  // Video kaynağını değiştir
   currentVideoPath = videoData.path;
   video.src = videoData.path;
   currentVideoNameSpan.textContent = videoData.displayName;
   videoInfoDiv.style.display = 'block';
   
-  // Kaydedilen ilerlemeyi yükle
   loadVideoProgress(videoData.name);
   
-  // Diğer kullanıcılara video değişikliğini bildir
   socket.emit('video-changed', { path: videoData.path, name: videoData.displayName });
   
   showToast(`Video seçildi: ${videoData.displayName}`);
@@ -347,7 +313,6 @@ function saveVideoProgress(videoName, currentTime) {
   localStorage.setItem(`video_progress_${videoName}`, JSON.stringify(progressData));
 }
 
-// İlerleme yükleme
 function loadVideoProgress(videoName) {
   if (!videoName) return;
   
@@ -356,7 +321,6 @@ function loadVideoProgress(videoName) {
     try {
       const progressData = JSON.parse(savedProgress);
       
-      // 10 saniyeden fazla ise kaydedilen konumdan devam et
       if (progressData.currentTime > 10) {
         video.addEventListener('loadedmetadata', function setProgress() {
           video.currentTime = progressData.currentTime;
@@ -370,7 +334,6 @@ function loadVideoProgress(videoName) {
   }
 }
 
-// Video ilerleme kaydetme (her 5 saniyede bir)
 let progressSaveInterval;
 function startProgressTracking() {
   if (progressSaveInterval) clearInterval(progressSaveInterval);
@@ -383,7 +346,6 @@ function startProgressTracking() {
   }, 5000);
 }
 
-// Video olaylarına ilerleme kaydetme ekle
 video.addEventListener('play', startProgressTracking);
 video.addEventListener('pause', () => {
   if (currentVideoPath) {
@@ -392,15 +354,12 @@ video.addEventListener('pause', () => {
   }
 });
 
-// Video değişikliği bildirimi
 socket.on('video-changed', ({ path, name }) => {
   if (path !== currentVideoPath) {
     currentVideoPath = path;
     video.src = path;
     currentVideoNameSpan.textContent = name;
     videoInfoDiv.style.display = 'block';
-    
-    // Seçimi güncelle
     document.querySelectorAll('.video-item').forEach(item => {
       item.classList.remove('selected');
       if (item.querySelector('.video-item-name').textContent === name) {
@@ -412,8 +371,6 @@ socket.on('video-changed', ({ path, name }) => {
   }
 });
 
-// Yenile butonu
 refreshBtn.onclick = loadVideos;
 
-// Sayfa yüklendiğinde video listesini yükle
 document.addEventListener('DOMContentLoaded', loadVideos);
